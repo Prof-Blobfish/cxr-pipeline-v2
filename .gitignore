@@ -3,4 +3,4 @@ outputs/
 checkpoints/
 .env
 .ipynb_checkpoints/
-src/__pycache__/
+__pycache__/
