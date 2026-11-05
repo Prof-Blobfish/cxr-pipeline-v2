@@ -36,3 +36,6 @@ traitlets==5.16.1
 typing_extensions==4.16.0
 tzdata==2026.6
 wcwidth==0.9.4
+--extra-index-url https://download.pytorch.org/whl/cu134
+torch==2.15.0+cu134
+torchvision==0.29.2+cu134
