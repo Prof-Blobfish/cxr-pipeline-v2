@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from torchvision.models import DenseNet121_Weights, densenet121
 
@@ -12,3 +13,8 @@ def build_model(num_classes: int = len(NIH_DISEASES), pretrained: bool = True) -
     model.classifier = nn.Linear(in_features, num_classes) # Head is replaced, not appended, since ImageNet head's 1000 classes mean nothing here
 
     return model
+
+
+def init_head_bias(model: nn.Module, bias: torch.Tensor) -> None:
+    with torch.no_grad(): # One-time setup step; changing a param in place while autograd is recording raises an error
+        model.classifier.bias.copy_(bias) # Trailing underscore "copy_(bias)" means it changes the tensor in place. Param obj stays the same one the optimizer will track
