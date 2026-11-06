@@ -3,7 +3,8 @@
 
 # 11/05/2026
 - Built src/model.py (DenseNet-121, Linear(1024→14) head)
-- Sanity checks: initial loss 0.744, overfit to 0.0034
+- Sanity checks: initial loss 0.6633, overfit to 0.0034
+- Fixed code to isolate and keep test data hidden
 - Learned: classes/__init__/dunders/self/type hints, SGD vs AdamW
 
 ## Theory/Notes:
