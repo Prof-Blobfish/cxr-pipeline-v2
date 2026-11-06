@@ -10,6 +10,19 @@ NIH_DISEASES = [
     "Pneumonia", "Pneumothorax",
 ]
 
+DEV_SPLITS = ("train", "val") # No test loaders exist here on purpose to avoid accidentally using one
+
+
+def assert_dev_only(df: pd.DataFrame) -> None: # Called right after filtering to ensure the filter excludes test
+    if "split" not in df.columns:
+        raise ValueError("DataFrame has no 'split' column, so it can't be verified as test-free")
+    n_test = int((df["split"] == "test").sum())
+    if n_test:
+        raise RuntimeError(
+            f"{n_test:,} test rows found in dev data. "
+            "Test is only reachable through the dedicated test entry point."
+        )
+
 
 def load_labels(nih_dir: Path) -> pd.DataFrame:
     df = pd.read_csv(nih_dir / "Data_Entry_2017.csv")
@@ -28,6 +41,13 @@ def load_labels(nih_dir: Path) -> pd.DataFrame:
     assert sorted(labels.columns) == sorted(NIH_DISEASES), labels.columns.tolist()
 
     return pd.concat([df, labels[NIH_DISEASES]], axis=1)
+
+
+def load_dev_labels(nih_dir: Path, split_csv: Path) -> pd.DataFrame:
+    df = _load_all_split_labels(nih_dir, split_csv)
+    df = df[df["split"].isin(DEV_SPLITS)].reset_index(drop=True) # reset_index gives clean 0..N-1 row numbers after filtering; avoids subtle misalignment
+    assert_dev_only(df)
+    return df
 
 
 # Assigns train -> val -> test splits in that order
@@ -65,7 +85,7 @@ def build_image_paths(nih_dir: Path) -> dict[str, Path]:
 
 
 # Joins fresh labels from the CSV with the frozen split on file (nih_split.csv)
-def load_split_labels(nih_dir: Path, split_csv: Path) -> pd.DataFrame:
+def _load_all_split_labels(nih_dir: Path, split_csv: Path) -> pd.DataFrame: # Private function only called by functions like load_dev_labels
     labels = load_labels(nih_dir)
     split = pd.read_csv(split_csv)[["Image Index", "split"]]
     df = labels.merge(split, on="Image Index", how="inner", validate="one_to_one") # validate raises an error if any Image Index appears twice on either side

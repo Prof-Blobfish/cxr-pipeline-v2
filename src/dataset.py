@@ -5,11 +5,19 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from src.data import NIH_DISEASES
+from src.data import NIH_DISEASES, assert_dev_only
 
 
 class NIHDataset(Dataset):
-    def __init__(self, df: pd.DataFrame, image_paths: dict[str, Path], transform): # Everything is precomputed, since __getitem__ runs ~75,000 times per epoch
+    def __init__(
+            self,
+            df: pd.DataFrame,
+            image_paths: dict[str, Path],
+            transform,
+            allow_test: bool = False,
+        ): # Everything is precomputed, since __getitem__ runs ~75,000 times per epoch
+        if not allow_test:
+            assert_dev_only(df)
         self.paths = [str(image_paths[name]) for name in df["Image Index"]] # List of plain strings (small and pickle faster)
         self.labels = torch.tensor(df[NIH_DISEASES].to_numpy(), dtype=torch.float32) # BCEWithLogitsLoss needs float targets
         self.transform = transform
