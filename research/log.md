@@ -31,7 +31,14 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 ## 2026-11-05: Log maintenance
 - Formatting-only edit to earlier entries: replaced Unicode arrows with "->". No content changed (verifiable in git history).
 
+## 2026-11-09: Milestone 6: training + none vs sqrt
+- `src/train.py`, `src/metrics.py` (manual tie-aware AUROC), FP32 classifier head. Runs auto-append to `research/runs.csv`. -> `notebooks/06_training.ipynb`.
+- 4 runs (none/sqrt x seed 0/1, 5 epochs, commit `97cf6d5`). Val macro13: none 0.8403 / 0.8410, sqrt 0.8380 / 0.8373.
+- Decision: pos_weight = none (pre-declared rule; sqrt never beat none, seed spread 0.0007). sqrt prior-corrected calibration ≈ none; raw sqrt over-predicts ~3.5x.
+- Observation, not acted on: sqrt Hernia AUROC 0.963 vs none 0.891 (22 val positives).
+
 ## Open questions
 - Final research question (decide after val exploration).
 - Retrain on train+val before test? Default: no (thresholds come from val). Must be decided in the analysis plan.
+- Does pos_weight help the rarest classes (Hernia)? Only n=22 on val; any check must be pre-declared, never used for selection.
 

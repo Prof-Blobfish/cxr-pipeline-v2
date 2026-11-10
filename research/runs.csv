@@ -1,0 +1,5 @@
+run_id,git_commit,src_dirty,pos_weight,seed,epochs,batch_size,lr,weight_decay,warmup_steps,best_epoch,val_macro_auroc13,auc_Atelectasis,auc_Cardiomegaly,auc_Consolidation,auc_Edema,auc_Effusion,auc_Emphysema,auc_Fibrosis,auc_Hernia,auc_Infiltration,auc_Mass,auc_Nodule,auc_Pleural_Thickening,auc_Pneumonia,auc_Pneumothorax
+20261109-1844_none_s0,97cf6d5,False,none,0,5,64,0.0001,0.01,500,4,0.8403,0.8289,0.9343,0.8438,0.9176,0.9072,0.9105,0.7991,0.8814,0.7282,0.8505,0.7772,0.8045,0.7649,0.8566
+20261109-1858_none_s1,97cf6d5,False,none,1,5,64,0.0001,0.01,500,5,0.841,0.8341,0.9345,0.8357,0.928,0.9078,0.9131,0.8117,0.9008,0.7183,0.8496,0.7747,0.8042,0.7632,0.858
+20261109-1919_sqrt_s0,97cf6d5,False,sqrt,0,5,64,0.0001,0.01,500,4,0.838,0.822,0.9348,0.843,0.9182,0.904,0.9244,0.7938,0.9715,0.7156,0.8538,0.7671,0.8049,0.7488,0.8632
+20261109-1933_sqrt_s1,97cf6d5,False,sqrt,1,5,64,0.0001,0.01,500,5,0.8373,0.8265,0.9332,0.833,0.9188,0.9032,0.9132,0.8009,0.9544,0.7158,0.8482,0.7684,0.8036,0.7605,0.8592
