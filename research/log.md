@@ -37,8 +37,19 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - Decision: pos_weight = none (pre-declared rule; sqrt never beat none, seed spread 0.0007). sqrt prior-corrected calibration ≈ none; raw sqrt over-predicts ~3.5x.
 - Observation, not acted on: sqrt Hernia AUROC 0.963 vs none 0.891 (22 val positives).
 
+## 2026-11-11: Milestone 7: val uncertainty, seed ensemble, operating points
+- `src/bootstrap.py` (patient-level weighted bootstrap AUROC), `src/operating_points.py` (thresholds, SHA-256, write-once JSON). -> `notebooks/07_validation.ipynb`.
+- Patient bootstrap (2,000, paired): ensemble macro13 0.8454 [0.8365, 0.8533]; singles 0.8403 [0.8314, 0.8483] / 0.8410 [0.8323, 0.8490].
+- Decision: primary model = 2-seed ensemble (mean logits). Pre-declared rule met: +0.0051 [0.0035, 0.0069] vs s0, +0.0044 [0.0027, 0.0060] vs s1.
+- M6 re-check with paired CIs (no change): sqrt - none [-0.0054, +0.0009] / [-0.0069, -0.0006].
+- Decision: thresholds = val sensitivity >= 0.90 per class, frozen in `research/operating_points.json` with checkpoint and val-logit hashes. Youden rejected as unstable (median resample range 0.13 vs 0.07).
+- Descriptive: Edema pooled AUROC 0.926 > AP 0.852 and PA 0.886 (view confound; not acted on).
+- Environment: pandas 3.1.1 -> 3.0.6 (Smart App Control began blocking 3.1.1's unsigned `_libs/ops` extension on 2026-11-11; the file was unchanged since install; force-reinstall didn't help and 3.1.1 is the latest release). M7 outputs are identical under 3.0.6.
+
 ## Open questions
 - Final research question (decide after val exploration).
 - Retrain on train+val before test? Default: no (thresholds come from val). Must be decided in the analysis plan.
 - Does pos_weight help the rarest classes (Hernia)? Only n=22 on val; any check must be pre-declared, never used for selection.
+- Pre-declare a view-stratified (AP/PA) analysis in the plan? Edema's pooled AUROC beats both views on val.
+- Test entry point must first reproduce the saved val logits from the hashed checkpoints.
 

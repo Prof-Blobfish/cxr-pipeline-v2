@@ -97,7 +97,7 @@
 - AUROC is a Ranking Statistic
     - AUROC = the prob that a random positive image gets a higher score than a random negative one (Mann-Whitney U statistic). Consequences:
         - Monotone transforms don't change it. Logit, sigmoid, or logit + constant all give the same AUROC. Prior correction (- log w) and calibration never move AUROC
-        - Ignores prevalence - GOOD for for comparing classes | BAD for clinical usefuness
+        - Ignores prevalence: GOOD for for comparing classes | BAD for clinical usefuness
 
 - Macro Over 13 Classes (Excluding Hernia)
     - Macro = unweighted mean of the per-class AUROCs, so rare diseases count as much as common ones. Hernia (22 val pos) leads to wild AUROC swings (one image moves it by ~0.5/22 in the worst case). Selecting it means selecting on noise, but it's still reported.
@@ -134,3 +134,91 @@
             - 8 - 3 = 5 = U (exactly the # of correctly ordered pairs)
         4. Divide by total # of pairs: 5 / (2 * 3) = 0.833 (AUPRC)
     - Basically: Order and rank logits, sum positives' ranks, subtract minimum, divide by n_pos * n_neg
+
+# 11/10/2026
+## Theory/Notes:
+### Milestone 7 (Seed Ensemble, Frozen Operating Points (Val Only))
+- Why bootstrap and why resample patients (over images)
+    - Bootstrap resamples the val set w/ replacement and finds the spread of val AUROC among different sets of patients (same count).
+        - The 2.5th and 97.5th percentiles give a 95% percentile confidence interval.
+    - Catch: bootstrap assumes the units resampled are independent, but a patient can have up to 62 near-copy images.
+        - Solution: resample patients (with all of their images respectively following)
+
+- Weights trick: weights are just a compressed description of the copied dataset (same answer without building the copies.)
+    - Boostrap first (e.g., B = 2000 times)
+    - Usually, we build the fake dataset with every drawn patient's images (for each instance of it) and find AUROC.
+    - Shortcut: Keep the original and tag each image with its patient's draw count -> **weighted** AUROC.
+    - Both give the exact same number, but weights is much faster (reuses one sort per class across all 2,000 replicates).
+        - Sort the unique scores once (`np.unique`)
+        - Per replicate, sum the positive weights and negative weights at each level (`np.bincount`)
+        - A positive at level k beats every negative below k, plus half the negatives tied at k: `pos * (cumsum(neg) - 0.5 * neg)`, divided by `W_pos * W_neg`.
+
+- Paired comparisons (**IMPORTANT**)
+    - To compare model A and model B, **use the same resamples for both** and take the CI of the *difference*. Both models score the same images, so a hard resample (lots of ambiguous Infiltration) drags both down together, and that shared noise cancels in A - B.
+    - For each of the 2,000 replicants:
+        1. Compute ensemble AUROC and s0 AUROC on that same fake val set.
+        2. Subtract: ensemble minus s0 to get one number
+    - Then take the 2.5th and 97.5th percentiles of those 2,000 *differences* (ens - s0 for each replicate) -> **paired CI**.
+    - Example:
+        - Paired (same resamples): [+0.0035, +0.0069] -> Entirely above 0, ensemble wins in basically every resample
+        - Unpaired (resample difficulty not cancelled): [-0.0068, +0.0176] -> Straddles 0, so "no idea"
+        - Same data, opposite conclusions
+
+- Why ensembling two seeds helps
+    - Averaging two models with partly independent errors cuts the error variance (up to half for truly independent errors) while the shared part stays.
+        - Gain is small but extremely consistent.
+    - **Predeclared rule**: adopts the ensemble only if the paired 95% CI lower bound is > 0 against **both** members. Otherwise fall back to `none s0`.
+
+- Rechecking Milestone 6 with the right tool
+    - M6: we compared sqrt vs. none against the seed spread since we didn't have bootstrap. Now we do:
+        - sqrt - none paired CI is [-0.0054, +0.0009] for seed 0 and [-0.0069, 0.0006] for seed 1.
+        - One CI includes 0 and the other barely excludes it => "no benefit from sqrt weighting"
+        - Decisions stays the same
+
+- Operating points: why a sensitivity target, not Youden
+    - A **threshold** is a cutoff that **turns logits into yes/no calls**: score >= threshold -> "pos", below it -> "neg"
+    - **Sensitivity** = out of **true positives**, what fraction did we **classify positive**? ("Did we catch the sick ones?")
+    - **Specificity** = out of **true negatives**, what fraction did we **classify negative**? ("Did we ignore healthy ones?")
+    - Sensitivity and specificity pull in opposite directions.
+        - Lower threshold -> flag more imgs -> catch more sick (sens up), but also flag more healthy (spec down)
+        - Picking a threshold picks a spot on that tradeoff.
+    - AUROC is threshold-free, but any "model stays pos" statement needs a threshold (**must be chosen on val**)
+        - Frozen threshold lets us say "at the operating point on val, sensitivity on no-drain pneumothorax drops from X to Y."
+    - Two prevalence-free options (matters since test is shifted: Pneumothorax 10.4% vs. 3.1%, AP 57% vs. 35%):
+        - **Sensitivity target (0.90)**: threshold is the 10th percentile of the positives' score
+            - "Slide the threshold down only until we catch 90% of sick people."
+            - Depends **only on the positives**, so prevalence and negatives don't move it.
+            - "Rule-out / screening" operating point, very interpretable: "we promised 90% sensitivity; did it hold on test?"
+        - **Youden's J** (max sens + spec - 1): also prevalence-free in theory, but the J curve is **flat near its maximum**, so the argmax wanders.
+            - "Find the threshold where sens + spec is as big as possible."
+            - Balanced, "best overall compromise" solution.
+    - Measured stability:
+        - On 300 patient-bootstrap samples, the 5th-95th percentile range has a median of 0.07 for *sens0* vs. 0.13 for *Youden*.
+        - Pneumonia: Youden's thresholds land anywhere from 0.56 to 0.84 sensitivity
+        - Decision is **sens 0.90**.
+            - Much more stable
+            - Doesn't care about prevalence -> matters since test is shifted
+            - Easy promise to check -> "set to catch 90% cases on val, does it still catch 90% on test?"
+    - Specificity is the price for sensitivity
+        - At 90% sens:
+            - Edema has spec 0.84 (leaves 84% healthy people alone. Great!)
+            - Infiltration has spec 0.36 (flags almost 2 in 3 healthy people. Not great!)
+                - Diseases the model is bad at need a really low threshold to catch 90%, which flags much more healthy people.
+
+- The view confound: Simpson's paradox for AUROC
+    - Pooled AUROC compares every pos with every neg, including pairs across views (postero-anterior and antero-posterior). Suppose:
+        1. a disease is more common in AP (Edema: 15.7x in val), and
+        2. the model's score also goes up for AP images (Edema logit predicts AP with AUROC .0.817).
+        => The cross-view pairs (AP pos vs. PA neg) are "easy wins" from view alone
+    - Because of this cross-view free wins, we get **Simpson's paradox**: combined result beats every individual piece.
+        - Pooled AUROC beats AP-only or PA-only AUROCs
+    - Same issue as chest drains and Penumothorax: something in the image (drain) correlates with the label without being the disease. Headline pooled AUROC can overstate confidence in model diagnoses.
+
+- Honesty caveat: val is now "used up" for these decisions
+    - Val picked best epoch, pos_weight, ensemble, and thresholds. **Val numbers are optimistic** (select on noise, the "winner's curse"), and sens = 0.90 on val will likely be a bit lower on new data even without any shift, which is the reason for test.
+    - Val CIs describe val sampling noise, not generalization gap.
+
+# 11/11/2026
+## Theory/Notes:
+### Milestone 7 (Seed Ensemble, Frozen Operating Points (Val Only)) [Continued]
+- 

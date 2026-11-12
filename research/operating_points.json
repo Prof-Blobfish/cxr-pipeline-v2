@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "made_by": "notebooks/07_validation.ipynb",
+  "score": "mean of member logits",
+  "members": [
+    {
+      "run_id": "20261109-1844_none_s0",
+      "checkpoint": "checkpoints/20261109-1844_none_s0.pt",
+      "checkpoint_sha256": "8f1260112c4d4857aa25abfc073368fecaf25135785a5ee79a9d882ce552a8df",
+      "val_logits_sha256": "61296bcc4cfed4024b292c292b36348d14390054fb1fd14820c12893459e09a9"
+    },
+    {
+      "run_id": "20261109-1858_none_s1",
+      "checkpoint": "checkpoints/20261109-1858_none_s1.pt",
+      "checkpoint_sha256": "0dca1d70716ce898b5ab3e746fbfa461c10c8428fdd6100676b1ed05ceeca1d2",
+      "val_logits_sha256": "cecceb869edcb53400f16277ba5a753516cebd4526f1528af7236175768a3001"
+    }
+  ],
+  "rule": "positive if score >= threshold",
+  "criterion": "highest threshold with val sensitivity >= 0.9",
+  "thresholds": {
+    "Atelectasis": -3.224865,
+    "Cardiomegaly": -4.140021,
+    "Consolidation": -4.070144,
+    "Edema": -4.037750000000001,
+    "Effusion": -3.0304845,
+    "Emphysema": -5.043312500000001,
+    "Fibrosis": -5.163215,
+    "Hernia": -6.3377685,
+    "Infiltration": -2.3015505,
+    "Mass": -4.481636,
+    "Nodule": -4.0161335000000005,
+    "Pleural_Thickening": -4.719817,
+    "Pneumonia": -5.362976,
+    "Pneumothorax": -5.0471835
+  }
+}
