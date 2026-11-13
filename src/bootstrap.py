@@ -42,3 +42,9 @@ def bootstrap_per_class_auroc(logits: np.ndarray, labels: np.ndarray, counts: np
 def percentile_ci(samples: np.ndarray, level: float = 0.95) -> np.ndarray:
     tail = (1 - level) / 2 * 100
     return np.percentile(samples, [tail, 100 - tail], axis=0) # 1-D macro array or a (B, 14) per-class array
+
+
+# Weighted mean of a per-img value on every replicate, e.g. hit (score >= threshold) over positives -> sensitivity
+def bootstrap_mean(values: np.ndarray, counts: np.ndarray, codes: np.ndarray) -> np.ndarray:
+    w = counts[:, codes] # counts[:, codes] = (2000 x n_images) img weights; pairing works automatically
+    return (w @ values) / w.sum(axis=1) # w @ values sums them per replicate, and dividing by weight total gives weighted mean
