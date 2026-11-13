@@ -51,6 +51,13 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - Pre-declared in `research/analysis_plan.md` before any drain result was computed: A1 drain shortcut (H1), A2 error analysis at the frozen thresholds, A3 Grad-CAM selection rule. Val results will be labeled exploratory.
 - NIH bounding boxes: all 880 images are in test (checked by Image Index only) -> no localization metric on dev.
 
+## 2026-11-12: Milestone 8 (part B): drains, errors, Grad-CAM (val, exploratory)
+- `bootstrap_mean` (`src/bootstrap.py`), `src/gradcam.py`. -> `notebooks/08_drains_errors_gradcam.ipynb`.
+- A1: Pneumothorax AUROC D+ 0.949 vs D- 0.817, difference +0.131 [+0.086, +0.181]; sensitivity at the frozen threshold 0.989 vs 0.844. H1 criterion met on val (exploratory; possible size confound noted).
+- A2: macro13 sensitivity first study minus follow-up -0.061 [-0.100, -0.027]; AP vs PA no clear difference.
+- A3: Grad-CAM equals CAM for this head; maps qualitative only.
+- Observation: re-inference does not bit-reproduce the saved val logits (bf16 + cudnn.benchmark; up to ~0.035 logits, run-to-run; a few frozen-threshold decisions flip).
+
 ## Open questions
 - Final research question (decide after val exploration).
 - Retrain on train+val before test? Default: no (thresholds come from val). Must be decided in the analysis plan.
@@ -58,4 +65,5 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - Pre-declare a view-stratified (AP/PA) analysis in the plan? Edema's pooled AUROC beats both views on val.
 - Test entry point must first reproduce the saved val logits from the hashed checkpoints.
 - Test-time Grad-CAM localization on the 880 bounding-box test images (e.g. pointing game)? Decide before freezing the plan.
-
+- Reproduction tolerances for the test entry point (val re-inference differs from saved logits by up to ~0.035; some threshold decisions flip). State them in the plan; consider deterministic inference for the test run.
+- Drained pneumothoraces may be larger: can size or another proxy separate "tube shortcut" from "easier cases"? Decide before freezing the plan.
