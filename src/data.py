@@ -91,3 +91,15 @@ def _load_all_split_labels(nih_dir: Path, split_csv: Path) -> pd.DataFrame: # Pr
     df = labels.merge(split, on="Image Index", how="inner", validate="one_to_one") # validate raises an error if any Image Index appears twice on either side
     assert len(df) == len(labels), "Some images are missing from the split file"
     return df
+
+
+# NEATX drain labels exist only for Pneumothorax-positive images. Filtered to dev images before any label column is used
+def load_dev_drains(neatx_csv: Path, dev_df: pd.DataFrame) -> pd.DataFrame:
+    assert_dev_only(dev_df) # Raises on any test rows before the file is even read
+    raw = pd.read_csv(neatx_csv)
+    drains = raw[raw["Image Index"].isin(dev_df["Image Index"])] # Filter .isin() runs before any label col is used ("mixed files must be filtered inside a loader")
+    drains = drains.merge(dev_df[["Image Index", "split"]], on="Image Index", how="left", validate="one_to_one")
+    assert_dev_only(drains)
+    if not drains["Drain"].isin([0, 1]).all():
+        raise ValueError("NEATX 'Drain' should be 0/1")
+    return drains[["Image Index", "split", "Drain"]].rename(columns={"Drain": "drain"}).reset_index(drop=True)

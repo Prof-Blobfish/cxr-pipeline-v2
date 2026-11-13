@@ -46,10 +46,16 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - Descriptive: Edema pooled AUROC 0.926 > AP 0.852 and PA 0.886 (view confound; not acted on).
 - Environment: pandas 3.1.1 -> 3.0.6 (Smart App Control began blocking 3.1.1's unsigned `_libs/ops` extension on 2026-11-11; the file was unchanged since install; force-reinstall didn't help and 3.1.1 is the latest release). M7 outputs are identical under 3.0.6.
 
+## 2026-11-12: Milestone 8 (part A): drain loader + pre-declared analyses
+- `load_dev_drains` in `src/data.py`: NEATX drain labels filtered to dev images before use; raises on test rows. Dev coverage: 1,564 train / 219 val rows, all NIH Pneumothorax-positive (val: 91 drain, 128 no drain; 78 val positives unannotated). On dev the two annotators never disagree across 0.5; aggregated `Drain` = 1 iff both rate >= 0.75.
+- Pre-declared in `research/analysis_plan.md` before any drain result was computed: A1 drain shortcut (H1), A2 error analysis at the frozen thresholds, A3 Grad-CAM selection rule. Val results will be labeled exploratory.
+- NIH bounding boxes: all 880 images are in test (checked by Image Index only) -> no localization metric on dev.
+
 ## Open questions
 - Final research question (decide after val exploration).
 - Retrain on train+val before test? Default: no (thresholds come from val). Must be decided in the analysis plan.
 - Does pos_weight help the rarest classes (Hernia)? Only n=22 on val; any check must be pre-declared, never used for selection.
 - Pre-declare a view-stratified (AP/PA) analysis in the plan? Edema's pooled AUROC beats both views on val.
 - Test entry point must first reproduce the saved val logits from the hashed checkpoints.
+- Test-time Grad-CAM localization on the 880 bounding-box test images (e.g. pointing game)? Decide before freezing the plan.
 
