@@ -103,3 +103,40 @@ def load_dev_drains(neatx_csv: Path, dev_df: pd.DataFrame) -> pd.DataFrame:
     if not drains["Drain"].isin([0, 1]).all():
         raise ValueError("NEATX 'Drain' should be 0/1")
     return drains[["Image Index", "split", "Drain"]].rename(columns={"Drain": "drain"}).reset_index(drop=True)
+
+
+EXPERT_FOUR = ["Fracture", "Pneumothorax", "Airspace opacity", "Nodule or mass"]
+
+# Model score for an expert finding = max over these NIH classes of the frozen score; NIH ref label = any of them. Fracture has no NIH class
+EXPERT_TO_NIH = {
+    "Airspace opacity": ["Atelectasis", "Consolidation", "Edema", "Infiltration", "Pneumonia"],
+    "Nodule or mass": ["Mass", "Nodule"],
+    "Pneumothorax": ["Pneumothorax"],
+}
+
+
+# Aggregated (adjudicated) expert four-findings labels. On dev only the "validation" file is read; it covers train and val images
+def load_dev_expert_four(labels_csv: Path, dev_df: pd.DataFrame) -> pd.DataFrame:
+    assert_dev_only(dev_df)
+    raw = pd.read_csv(labels_csv)
+    expert = raw[raw["Image Index"].isin(dev_df["Image Index"])]
+    expert = expert.merge(dev_df[["Image Index", "split"]], on="Image Index", how="left", validate="one_to_one")
+    assert_dev_only(expert)
+    if not expert[EXPERT_FOUR].isin(["YES", "NO"]).all().all():
+        raise ValueError("Expert four-findings labels should be YES/NO")
+    flags = (expert[EXPERT_FOUR] == "YES").astype(int).add_prefix("expert ") # Expert file has its own Pneumothorax col. W/o prefix -> silent collision
+    return pd.concat([expert[["Image Index", "split"]], flags], axis=1)
+
+
+# Individual readers of the four-findings sets: one row per image and reader, YES/NO/HEDGE. The file mixes test and dev images
+def load_dev_expert_readers(readers_csv: Path, dev_df: pd.DataFrame) -> pd.DataFrame: # Same shape as load_dev_drains
+    assert_dev_only(dev_df)
+    raw = pd.read_csv(readers_csv).rename(columns={"Image ID": "Image Index", "Nodule/mass": "Nodule or mass"})
+    readers = raw[raw["Image Index"].isin(dev_df["Image Index"])]
+    readers = readers.merge(dev_df[["Image Index", "split"]], on="Image Index", how="left", validate="many_to_one") # validate="many_to_one": each img has ~3 reader rows but exactly one split row
+    assert_dev_only(readers)
+    if readers.duplicated(["Image Index", "Reader ID"]).any(): # Protects the "3 reads per img" assumption Fleiss' kappa needs
+        raise ValueError("A reader labeled the same image twice")
+    if not readers[EXPERT_FOUR].isin(["YES", "NO", "HEDGE"]).all().all(): # First .all() gives one result per col, second reduces those to a single T/F
+        raise ValueError("Reader labels should be YES/NO/HEDGE")
+    return readers[["Image Index", "split", "Reader ID", *EXPERT_FOUR]].reset_index(drop=True)

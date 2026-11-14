@@ -35,6 +35,21 @@ Patient-level bootstrap (resample patients with replacement, not images), 2,000 
   - the 4 lowest-scoring Pneumothorax positives (most confident false negatives).
 - All 16 maps are shown; none are dropped. No localization metric on dev (all NIH bounding boxes are in test).
 
+### A4. Expert four-findings re-labeling (val = dry run on 266 images; test = confirmatory)
+- Labels: aggregated (adjudicated) expert labels, loaded through `load_dev_expert_four` on dev (the "validation" file only) and only through the test entry point on test. NIH labels of the same images are the comparison.
+- Scores (`EXPERT_TO_NIH` in `src/data.py`): max over the mapped NIH classes of the frozen primary score; NIH reference label = 1 if any mapped NIH label is 1. Airspace opacity <- Atelectasis, Consolidation, Edema, Infiltration, Pneumonia; Nodule or mass <- Mass, Nodule; Pneumothorax <- Pneumothorax. Fracture has no NIH class: prevalence only.
+- Evaluable: a finding is evaluated on a split if it has >= 10 positive images under both the expert and the NIH label, decided from label counts before any score is computed; otherwise counts only.
+- Primary (estimation, no directional hypothesis): AUROC against the expert label and against the NIH label on the same images, and the difference (expert minus NIH), paired patient bootstrap.
+- Secondary: sensitivity and specificity at the frozen thresholds against both label sets (a mapped finding is predicted positive if any of its NIH classes is at or above its frozen threshold); AUROC against the expert label of the ensemble minus each member, paired CIs.
+- Descriptive: NIH-vs-expert label agreement per finding; number of NIH "No Finding" images with any expert-positive finding.
+- Readers (descriptive only, `load_dev_expert_readers`): per finding, the distribution of YES reads, the number of HEDGE reads, and Fleiss' kappa (YES vs not YES; HEDGE counted as not YES) on images with exactly 3 reads. No model-vs-reader comparison.
+
+### A5. Expert all-findings re-labeling (test only, 810 images)
+- Labels: aggregated expert all-findings labels (YES/NO; "Pleural Thickening" = NIH "Pleural_Thickening"), read only by the test entry point. There are no dev images, so there is no dry run; the metric code is the A4 code, dry-run on val.
+- Classes: the 13 selection classes; a class is evaluated if it has >= 10 positive images under both the expert and the NIH label, decided from label counts before any score is computed.
+- Primary (estimation): per class AUROC against the expert and the NIH label and the difference; macro over the evaluated classes, difference expert minus NIH, paired patient bootstrap.
+- Secondary: "Abnormal": score = max of the 14 frozen scores, AUROC against the expert "Abnormal" label and against NIH "any of the 14 findings". Expert macro AUROC of the ensemble minus each member, paired CIs.
+
 ## Success criteria
 TBD.
 

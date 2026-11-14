@@ -58,6 +58,12 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - A3: Grad-CAM equals CAM for this head; maps qualitative only.
 - Observation: re-inference does not bit-reproduce the saved val logits (bf16 + cudnn.benchmark; up to ~0.035 logits, run-to-run; a few frozen-threshold decisions flip).
 
+## 2026-11-14: Milestone 9 (part A): expert labels, defined before any score
+- `EXPERT_FOUR`, `EXPERT_TO_NIH`, `load_dev_expert_four`, `load_dev_expert_readers` in `src/data.py` (dev images filtered before any label column is used).
+- Dev label facts (labels only, no scores): the four-findings "validation" file = 2,148 train + 266 val images. Val: 103 patients, 89% AP; expert positives Airspace opacity 117 (43 patients), Nodule or mass 35 (18), Pneumothorax 0, Fracture 2 -> only Airspace opacity and Nodule or mass are evaluable on val. The aggregated labels are adjudicated, not a reader majority.
+- Pre-declared in `research/analysis_plan.md` before any score was computed on these images: A4 (four findings), A5 (all findings, test only).
+- Isolation note: an early file preview printed the header and first 3 data rows of the three expert files that contain test images. No score was computed and nothing was decided from them.
+
 ## Open questions
 - Final research question (decide after val exploration).
 - Retrain on train+val before test? Default: no (thresholds come from val). Must be decided in the analysis plan.
@@ -67,3 +73,4 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - Test-time Grad-CAM localization on the 880 bounding-box test images (e.g. pointing game)? Decide before freezing the plan.
 - Reproduction tolerances for the test entry point (val re-inference differs from saved logits by up to ~0.035; some threshold decisions flip). State them in the plan; consider deterministic inference for the test run.
 - Drained pneumothoraces may be larger: can size or another proxy separate "tube shortcut" from "easier cases"? Decide before freezing the plan.
+- Expert Pneumothorax (A4) is only evaluable on test (0 val positives). Combine with NEATX drains on test (expert-labeled D+ / D-)? Decide before freezing the plan.
