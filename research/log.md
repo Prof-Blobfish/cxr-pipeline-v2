@@ -64,6 +64,14 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - Pre-declared in `research/analysis_plan.md` before any score was computed on these images: A4 (four findings), A5 (all findings, test only).
 - Isolation note: an early file preview printed the header and first 3 data rows of the three expert files that contain test images. No score was computed and nothing was decided from them.
 
+## 2026-11-18: Milestone 9 (part B): expert re-labeling (val, exploratory)
+- `fleiss_kappa` (`src/metrics.py`). -> `notebooks/09_expert_labels.ipynb`.
+- Val subset: 266 images, 103 patients, 89% AP; evaluable: Airspace opacity, Nodule or mass.
+- A4: Airspace opacity AUROC expert 0.911 vs NIH 0.801 on the same images, difference +0.110 [+0.031, +0.198]; Nodule or mass -0.009 [-0.139, +0.087]. Ensemble minus members: CIs include 0.
+- 35 of 134 NIH "No Finding" images have an expert-positive finding.
+- Readers: Fleiss' kappa 0.626 (Airspace opacity), 0.634 (Nodule or mass); Fracture and Pneumothorax not interpretable (near-zero prevalence).
+- Disclosure: a scratch exploration (not pre-declared, nothing decided from it) also computed kappa with HEDGE counted as YES: Nodule or mass 0.557, Airspace opacity unchanged (0 HEDGE reads).
+
 ## Open questions
 - Final research question (decide after val exploration).
 - Retrain on train+val before test? Default: no (thresholds come from val). Must be decided in the analysis plan.
@@ -74,3 +82,5 @@ Decision details live in each notebook's final "decisions" cell; this log links 
 - Reproduction tolerances for the test entry point (val re-inference differs from saved logits by up to ~0.035; some threshold decisions flip). State them in the plan; consider deterministic inference for the test run.
 - Drained pneumothoraces may be larger: can size or another proxy separate "tube shortcut" from "easier cases"? Decide before freezing the plan.
 - Expert Pneumothorax (A4) is only evaluable on test (0 val positives). Combine with NEATX drains on test (expert-labeled D+ / D-)? Decide before freezing the plan.
+- Airspace opacity expert-minus-NIH gap on val (+0.110): label noise vs NIH/expert definition mismatch vs AP-heavy case mix. Pre-declare a per-NIH-class breakdown for test? Decide before freezing the plan.
+- Reader kappa sensitivity analysis with HEDGE counted as YES on test? Decide before freezing the plan.
